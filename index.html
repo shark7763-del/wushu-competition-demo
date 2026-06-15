@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>武術比賽報名與自動賽程系統</title>
+<!-- ================= CSS ================= -->
+<style>
+:root{
+  --bg:#0b1220; --panel:#111c30; --panel2:#16233c; --line:#24314f;
+  --txt:#e8eef9; --muted:#8ea0bd; --gold:#e0b84d; --red:#e0414a; --green:#27c08a;
+  --blue:#3b82f6; --accent:#e0b84d;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Microsoft JhengHei","Segoe UI",system-ui,sans-serif;background:
+  radial-gradient(1200px 600px at 80% -10%,#1a2740 0%,transparent 60%),var(--bg);
+  color:var(--txt);min-height:100vh;-webkit-text-size-adjust:100%}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit}
+.hidden{display:none!important}
+
+/* 頂部列 */
+header{position:sticky;top:0;z-index:50;background:rgba(11,18,32,.92);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:10px 16px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:1px}
+.logo .badge{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--gold),#b8862a);
+  display:grid;place-items:center;color:#1a1304;font-weight:900;font-size:18px}
+.logo small{display:block;color:var(--muted);font-weight:500;font-size:11px;letter-spacing:0}
+.spacer{flex:1}
+.evtsel{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;max-width:240px}
+.role-chip{font-size:12px;color:var(--gold);border:1px solid var(--gold);border-radius:20px;padding:4px 12px}
+.btn-logout{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:7px 12px;font-size:13px}
+
+/* 分頁 */
+nav.tabs{display:flex;gap:6px;overflow-x:auto;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--bg)}
+nav.tabs button{white-space:nowrap;background:var(--panel);border:1px solid var(--line);color:var(--muted);
+  border-radius:9px;padding:9px 14px;font-size:14px;font-weight:600}
+nav.tabs button.active{background:linear-gradient(135deg,var(--gold),#c79a36);color:#1a1304;border-color:transparent}
+
+main{max-width:1180px;margin:0 auto;padding:18px 16px 60px}
+.page{animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+
+/* 卡片 / 區塊 */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+.card h2{font-size:17px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card h2 .bar{width:5px;height:18px;background:var(--gold);border-radius:3px;display:inline-block}
+.sub{color:var(--muted);font-size:13px;margin-bottom:12px}
+
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:760px){.g2,.g3,.g4{grid-template-columns:1fr}}
+
+label.f{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+.inp{width:100%;background:var(--panel2);color:var(--txt);border:1px solid var(--line);
+  border-radius:9px;padding:10px 12px;font-size:14px}
+.inp:focus{outline:none;border-color:var(--gold)}
+
+.btn{border:none;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:700;color:#fff;background:var(--blue)}
+.btn.gold{background:linear-gradient(135deg,var(--gold),#c79a36);color:#1a1304}
+.btn.green{background:var(--green)} .btn.red{background:var(--red)} .btn.ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+.btn.sm{padding:6px 11px;font-size:12.5px;border-radius:8px}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+
+/* 表格 */
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:560px}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:var(--panel2);color:var(--muted);font-weight:600;position:sticky;top:0}
+tr:hover td{background:rgba(255,255,255,.02)}
+
+.pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:700}
+.pill.ok{background:rgba(39,192,138,.16);color:var(--green)}
+.pill.wait{background:rgba(224,184,77,.16);color:var(--gold)}
+.pill.no{background:rgba(224,65,74,.16);color:var(--red)}
+
+/* 戰情室數字卡 */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:14px;padding:16px}
+.stat .n{font-size:30px;font-weight:900;color:var(--gold)}
+.stat .l{color:var(--muted);font-size:13px;margin-top:3px}
+
+/* 對戰表 */
+.bracket{display:flex;gap:34px;overflow:auto;padding:8px 2px}
+.round{display:flex;flex-direction:column;justify-content:space-around;gap:14px;min-width:190px}
+.round h4{font-size:12px;color:var(--muted);text-align:center;margin-bottom:4px}
+.match{background:var(--panel2);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.match .side{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;font-size:13px;gap:8px}
+.match .side+.side{border-top:1px solid var(--line)}
+.match .side.win{background:rgba(224,184,77,.12)}
+.match .side.win .nm{color:var(--gold);font-weight:800}
+.match .side.bye{opacity:.5;font-style:italic}
+.match .side .u{color:var(--muted);font-size:11px}
+.match .side button{background:transparent;border:1px solid var(--gold);color:var(--gold);border-radius:6px;font-size:11px;padding:2px 7px}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#0f1830;border:1px solid var(--gold);
+  color:var(--txt);padding:13px 22px;border-radius:12px;z-index:200;box-shadow:0 10px 40px rgba(0,0,0,.5);font-weight:600;max-width:90vw}
+.loading{text-align:center;color:var(--muted);padding:30px}
+
+/* 登入 */
+.login-wrap{max-width:430px;margin:8vh auto;text-align:center}
+.role-cards{display:grid;gap:12px;margin-top:18px}
+.role-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;text-align:left;display:flex;gap:14px;align-items:center}
+.role-card:hover{border-color:var(--gold)}
+.role-card .ic{font-size:30px}
+.role-card h3{font-size:16px}.role-card p{color:var(--muted);font-size:13px;margin-top:2px}
+
+.minisec{border:1px dashed var(--line);border-radius:12px;padding:14px;margin-top:12px}
+.athlete-row{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+.rm{color:var(--red);background:transparent;border:none;font-size:18px}
+.tag{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:3px 9px;font-size:12px;margin:2px}
+</style>
+</head>
+<body>
+
+<!-- ============ 登入畫面 ============ -->
+<div id="loginScreen">
+  <div class="login-wrap">
+    <div class="logo" style="justify-content:center;font-size:22px">
+      <span class="badge">武</span>
+      <div>武術比賽報名系統<small>報名 · 自動分組 · 自動賽程 · 戰情室</small></div>
+    </div>
+    <div class="role-cards">
+      <div class="role-card" onclick="chooseRole('admin')">
+        <div class="ic">🛡️</div><div><h3>管理者</h3><p>建立賽事、審核、自動賽程、匯出</p></div>
+      </div>
+      <div class="role-card" onclick="chooseRole('coach')">
+        <div class="ic">📋</div><div><h3>教練 / 單位報名</h3><p>填寫單位、新增選手、團體報名</p></div>
+      </div>
+      <div class="role-card" onclick="chooseRole('player')">
+        <div class="ic">🔍</div><div><h3>選手 / 家長查詢</h3><p>查報名結果、出場序、對戰表、名次</p></div>
+      </div>
+    </div>
+    <div id="adminPw" class="minisec hidden" style="margin-top:16px">
+      <label class="f">管理者密碼</label>
+      <input id="pwInput" class="inp" type="password" placeholder="預設 wushu2026" onkeydown="if(event.key==='Enter')doLogin('admin')">
+      <div class="btnrow"><button class="btn gold" style="flex:1" onclick="doLogin('admin')">登入後台</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 主畫面 ============ -->
+<div id="app" class="hidden">
+  <header>
+    <div class="logo"><span class="badge">武</span><div>武術賽事系統<small id="hdrSub">戰情室</small></div></div>
+    <div class="spacer"></div>
+    <select id="eventSelect" class="evtsel" onchange="onEventChange()"></select>
+    <span id="roleChip" class="role-chip">管理者</span>
+    <button class="btn-logout" onclick="logout()">登出</button>
+  </header>
+  <nav class="tabs" id="tabs"></nav>
+  <main id="view"></main>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<!-- ===== 本機預覽 Mock 後端（取代 google.script.run） ===== -->
+<script>
+/* ===================================================================
+ *  本機預覽用 Mock 後端：在瀏覽器直接模擬 google.script.run
+ *  ※ 資料存在記憶體（重整即還原測試資料），純展示用，不寫雲端
+ * =================================================================== */
+(function(){
+  function uid(p){return (p||'id')+'_'+Math.random().toString(36).slice(2,9);}
+  function clone(o){return JSON.parse(JSON.stringify(o));}
+
+  // ---- 記憶體資料表 ----
+  var DB={Events:[],Items:[],Groups:[],WeightClasses:[],Registrations:[],Teams:[],Schedules:[],Results:[],Settings:{}};
+
+  // ---- 種子資料（同 setupSheets）----
+  var eventId=uid('evt');
+  DB.Events.push({id:eventId,name:'2026 全國武術錦標賽（本機展示）',date:'2026-08-15',location:'育林國中體育館',
+    host:'中華民國武術總會',regStart:'2026-06-01',regEnd:'2026-07-31',status:'報名中'});
+  ['幼兒組','國小低年級','國小中年級','國小高年級','國中組','高中組','大專組','社會組','長青組']
+    .forEach(function(g){DB.Groups.push({id:uid('grp'),name:g,note:''});});
+  [['男子-48kg','男子',0,48],['男子-52kg','男子',48,52],['男子-56kg','男子',52,56],['男子-60kg','男子',56,60],
+   ['男子-65kg','男子',60,65],['男子-70kg','男子',65,70],['女子-48kg','女子',0,48],['女子-52kg','女子',48,52],
+   ['女子-56kg','女子',52,56],['女子-60kg','女子',56,60]]
+    .forEach(function(w){DB.WeightClasses.push({id:uid('wt'),name:w[0],gender:w[1],minW:w[2],maxW:w[3]});});
+  var items=[['長拳','套路'],['南拳','套路'],['太極拳','套路'],['刀術','套路'],['劍術','套路'],['棍術','套路'],
+    ['槍術','套路'],['傳統拳術','套路'],['傳統器械','套路'],['散打','散打'],['集體拳術','團體'],
+    ['集體器械','團體'],['雙人對練','團體']];
+  var itemId={};
+  items.forEach(function(it){var id=uid('itm');itemId[it[0]]=id;
+    DB.Items.push({id:id,eventId:eventId,name:it[0],type:it[1],needWeight:it[1]==='散打'});});
+  var grpNation=DB.Groups.filter(function(g){return g.name==='國中組';})[0];
+  var units=['雄麒武館','育林國中','飛龍武術社','長青拳社','少林精武會'];
+  for(var i=0;i<10;i++)DB.Registrations.push({id:uid('reg'),eventId:eventId,unit:units[i%5],coach:'教練'+(i%5+1),
+    phone:'09000'+i,email:'c'+i+'@t.com',athleteName:'長拳選手'+(i+1),gender:'男子',birthday:'2011-03-01',age:14,
+    school:units[i%5],grade:'八年級',itemId:itemId['長拳'],itemName:'長拳',itemType:'套路',
+    groupId:grpNation.id,groupName:'國中組',weight:'',weightClass:'',review:'已審核',fee:'已繳費'});
+  for(var j=0;j<7;j++)DB.Registrations.push({id:uid('reg'),eventId:eventId,unit:units[j%5],coach:'教練'+(j%5+1),
+    phone:'09110'+j,email:'c'+j+'@t.com',athleteName:'散打選手'+(j+1),gender:'男子',birthday:'2011-05-01',age:14,
+    school:units[j%5],grade:'八年級',itemId:itemId['散打'],itemName:'散打',itemType:'散打',
+    groupId:grpNation.id,groupName:'國中組',weight:59,weightClass:'男子-60kg',review:'已審核',fee:'已繳費'});
+  for(var k=0;k<2;k++)DB.Teams.push({id:uid('team'),eventId:eventId,unit:units[k],coach:'教練'+(k+1),phone:'0922'+k,
+    email:'tm'+k+'@t.com',teamName:units[k]+'對練隊',itemId:itemId['雙人對練'],itemName:'雙人對練',
+    groupId:grpNation.id,groupName:'國中組',members:JSON.stringify(['隊員A'+k,'隊員B'+k]),review:'已審核',fee:'已繳費'});
+  DB.Settings={adminPassword:'wushu2026'};
+
+  function regsBy(f){f=f||{};return DB.Registrations.filter(function(r){
+    return (!f.eventId||r.eventId===f.eventId)&&(!f.unit||r.unit===f.unit)&&(!f.itemId||r.itemId===f.itemId)&&
+      (!f.groupName||r.groupName===f.groupName)&&(!f.gender||r.gender===f.gender)&&
+      (!f.weightClass||r.weightClass===f.weightClass)&&(!f.fee||r.fee===f.fee)&&(!f.review||r.review===f.review);
+  });}
+  function teamsBy(eid){return DB.Teams.filter(function(t){return !eid||t.eventId===eid;})
+    .map(function(t){var c=clone(t);try{c.membersArr=JSON.parse(t.members);}catch(e){c.membersArr=[];}return c;});}
+
+  // ---- 賽程演算法（同 Code.gs）----
+  function spread(athletes){var by={};athletes.forEach(function(a){(by[a.unit]=by[a.unit]||[]).push(a);});
+    var us=Object.keys(by).sort(function(a,b){return by[b].length-by[a].length;});var res=[],add=true;
+    while(add){add=false;us.forEach(function(u){if(by[u].length){res.push(by[u].shift());add=true;}});}return res;}
+  function perfOrder(athletes){var o=spread(athletes.slice());
+    for(var i=1;i<o.length;i++){if(o[i].unit===o[i-1].unit){var sw=-1;
+      for(var j=i+1;j<o.length;j++){if(o[j].unit!==o[i-1].unit&&(j+1>=o.length||o[j+1].unit!==o[i].unit)){sw=j;break;}}
+      if(sw>-1){var t=o[i];o[i]=o[sw];o[sw]=t;}}}
+    return o.map(function(a,i){return {seq:i+1,name:a.name,unit:a.unit,id:a.id};});}
+  function seedOrder(size){var s=[1,2],rounds=Math.round(Math.log(size)/Math.log(2));
+    for(var r=1;r<rounds;r++){var sum=Math.pow(2,r+1)+1,nx=[];
+      for(var i=0;i<s.length;i++){nx.push(s[i]);nx.push(sum-s[i]);}s=nx;}return s;}
+  function propagate(rounds){for(var r=0;r<rounds.length-1;r++){var cur=rounds[r],nxt=rounds[r+1];
+    for(var m=0;m<cur.length;m++){var tg=nxt[Math.floor(m/2)],slot=(m%2===0)?'a':'b';
+      if(cur[m].winner)tg[slot]={id:cur[m].winner.id,name:cur[m].winner.name,unit:cur[m].winner.unit};}}}
+  function knockout(athletes){var players=spread(athletes.slice()),n=players.length,size=1;
+    while(size<n)size*=2;if(size<2)size=2;
+    var ord=seedOrder(size),slots=ord.map(function(sn){return sn<=n?players[sn-1]:null;});
+    var r1=[];for(var i=0;i<slots.length;i+=2){var a=slots[i],b=slots[i+1],w=null;
+      if(a&&!b)w=a;if(!a&&b)w=b;
+      r1.push({matchNo:r1.length+1,a:a?{id:a.id,name:a.name,unit:a.unit}:{name:'BYE',bye:true},
+        b:b?{id:b.id,name:b.name,unit:b.unit}:{name:'BYE',bye:true},
+        winner:w?{id:w.id,name:w.name,unit:w.unit}:null});}
+    var rounds=[r1],prev=r1.length;while(prev>1){var cnt=prev/2,rr=[];
+      for(var x=0;x<cnt;x++)rr.push({matchNo:x+1,a:null,b:null,winner:null});rounds.push(rr);prev=cnt;}
+    propagate(rounds);return {size:size,count:n,byes:size-n,rounds:rounds};}
+  function groupKeyOf(r){var wc=(r.itemType==='散打')?(r.weightClass||'未分量級'):'無量級';
+    return [r.itemName,r.groupName,r.gender,wc].join(' / ');}
+  function autoGroup(eid){var regs=regsBy({eventId:eid}).filter(function(r){return r.review==='已審核';}),map={};
+    regs.forEach(function(r){var key=groupKeyOf(r);if(!map[key])map[key]={key:key,itemId:r.itemId,itemName:r.itemName,
+      itemType:r.itemType,group:r.groupName,gender:r.gender,
+      weightClass:r.itemType==='散打'?(r.weightClass||'未分量級'):'',count:0,athletes:[]};
+      map[key].count++;map[key].athletes.push({id:r.id,name:r.athleteName,unit:r.unit});});
+    var gs=Object.keys(map).map(function(k){return map[k];}).sort(function(a,b){return a.key<b.key?-1:1;});
+    return {ok:true,total:regs.length,groups:gs};}
+
+  // ---- LINE 文字 ----
+  function regLineText(eid,unit){var ev=DB.Events.filter(function(e){return e.id===eid;})[0]||{};
+    var regs=regsBy({eventId:eid,unit:unit}),teams=teamsBy(eid).filter(function(t){return t.unit===unit;});
+    var t='【武術比賽報名確認】\n🏆 '+ev.name+'\n📅 '+ev.date+'　📍 '+ev.location+'\n🏫 報名單位：'+unit+'\n──────────────\n';
+    if(regs.length){t+='◆ 個人項目（'+regs.length+'）\n';regs.forEach(function(r,i){
+      t+=(i+1)+'. '+r.athleteName+'｜'+r.itemName+'｜'+r.groupName+(r.weightClass?'｜'+r.weightClass:'')+'｜'+r.review+'\n';});}
+    if(teams.length){t+='◆ 團體項目（'+teams.length+'）\n';teams.forEach(function(tm,i){
+      t+=(i+1)+'. '+tm.teamName+'｜'+tm.itemName+'｜'+tm.groupName+'（'+(tm.membersArr||[]).join('、')+'）\n';});}
+    return t+'──────────────\n請確認資料是否正確，繳費後完成報名 🙏';}
+  function schedLineText(eid){var ev=DB.Events.filter(function(e){return e.id===eid;})[0]||{};
+    var t='【武術比賽賽程公告】\n🏆 '+ev.name+'\n📅 '+ev.date+'　📍 '+ev.location+'\n';
+    getSchedules(eid).forEach(function(s){var d=s.dataObj;t+='──────────────\n▶ '+s.groupKey+'（'+s.itemType+'）\n';
+      if(d.kind==='order')d.order.forEach(function(o){t+=o.seq+'. '+o.name+'（'+o.unit+'）\n';});
+      else if(d.kind==='teamOrder')d.order.forEach(function(o){t+=o.seq+'. '+o.teamName+'（'+o.unit+'）\n';});
+      else if(d.kind==='bracket'){t+='單敗淘汰 '+d.bracket.count+' 人（補 '+d.bracket.byes+' BYE）\n';
+        d.bracket.rounds[0].forEach(function(m){t+='・'+(m.a?m.a.name:'待定')+' vs '+(m.b?m.b.name:'待定')+'\n';});}});
+    return t;}
+  function getSchedules(eid){return DB.Schedules.filter(function(s){return !eid||s.eventId===eid;})
+    .map(function(s){var c=clone(s);c.dataObj=JSON.parse(s.data);return c;});}
+
+  // ---- API 表（函式名對應 Code.gs）----
+  var API={
+    login:function(role,pw){if(role==='admin'&&String(pw)!==DB.Settings.adminPassword)return {ok:false,msg:'管理者密碼錯誤'};return {ok:true,role:role};},
+    getEvents:function(){return clone(DB.Events);},
+    createEvent:function(e){e=clone(e);e.id=uid('evt');DB.Events.push(e);return {ok:true,id:e.id};},
+    updateEvent:function(e){var x=DB.Events.filter(function(v){return v.id===e.id;})[0];if(x)Object.assign(x,e);return {ok:true};},
+    deleteEvent:function(id){DB.Events=DB.Events.filter(function(v){return v.id!==id;});return {ok:true};},
+    getItems:function(eid){return clone(DB.Items.filter(function(i){return !eid||i.eventId===eid;}));},
+    createItem:function(it){var x={id:uid('itm'),eventId:it.eventId,name:it.name,type:it.type,needWeight:it.type==='散打'};DB.Items.push(x);return {ok:true,id:x.id};},
+    deleteItem:function(id){DB.Items=DB.Items.filter(function(v){return v.id!==id;});return {ok:true};},
+    getGroups:function(){return clone(DB.Groups);},
+    createGroup:function(g){var x={id:uid('grp'),name:g.name,note:g.note||''};DB.Groups.push(x);return {ok:true,id:x.id};},
+    deleteGroup:function(id){DB.Groups=DB.Groups.filter(function(v){return v.id!==id;});return {ok:true};},
+    getWeightClasses:function(){return clone(DB.WeightClasses);},
+    createWeightClass:function(w){var x={id:uid('wt'),name:w.name,gender:w.gender,minW:w.minW||0,maxW:w.maxW||999};DB.WeightClasses.push(x);return {ok:true,id:x.id};},
+    deleteWeightClass:function(id){DB.WeightClasses=DB.WeightClasses.filter(function(v){return v.id!==id;});return {ok:true};},
+    submitRegistration:function(p){var u=p.unit||{},ca=0,ct=0;
+      (p.athletes||[]).forEach(function(a){DB.Registrations.push({id:uid('reg'),eventId:p.eventId,unit:u.unitName,coach:u.coach,
+        phone:u.phone,email:u.email,athleteName:a.name,gender:a.gender,birthday:a.birthday,age:a.age,school:a.school,grade:a.grade,
+        itemId:a.itemId,itemName:a.itemName,itemType:a.itemType,groupId:a.groupId,groupName:a.groupName,
+        weight:a.itemType==='散打'?(a.weight||''):'',weightClass:a.itemType==='散打'?(a.weightClass||''):'',review:'待審核',fee:'未繳費'});ca++;});
+      (p.teams||[]).forEach(function(t){DB.Teams.push({id:uid('team'),eventId:p.eventId,unit:u.unitName,coach:u.coach,phone:u.phone,
+        email:u.email,teamName:t.teamName,itemId:t.itemId,itemName:t.itemName,groupId:t.groupId,groupName:t.groupName,
+        members:JSON.stringify(t.members||[]),review:'待審核',fee:'未繳費'});ct++;});
+      return {ok:true,msg:'報名成功：個人 '+ca+' 筆、團體 '+ct+' 隊',countA:ca,countT:ct};},
+    getRegistrations:function(f){return clone(regsBy(f));},
+    getTeams:function(eid){return teamsBy(eid);},
+    reviewRegistration:function(id,rv,fee){var x=DB.Registrations.filter(function(v){return v.id===id;})[0];
+      if(x){if(rv!==undefined)x.review=rv;if(fee!==undefined)x.fee=fee;}return {ok:true};},
+    updateRegistration:function(r){var x=DB.Registrations.filter(function(v){return v.id===r.id;})[0];if(x)Object.assign(x,r);return {ok:true};},
+    deleteRegistration:function(id){DB.Registrations=DB.Registrations.filter(function(v){return v.id!==id;});return {ok:true};},
+    deleteTeam:function(id){DB.Teams=DB.Teams.filter(function(v){return v.id!==id;});return {ok:true};},
+    reviewTeam:function(id,rv,fee){var x=DB.Teams.filter(function(v){return v.id===id;})[0];
+      if(x){if(rv!==undefined)x.review=rv;if(fee!==undefined)x.fee=fee;}return {ok:true};},
+    autoGroup:function(eid){return autoGroup(eid);},
+    generateSchedule:function(eid){DB.Schedules=DB.Schedules.filter(function(s){return s.eventId!==eid;});
+      var created=[],gs=autoGroup(eid).groups;
+      gs.forEach(function(g){var data=g.itemType==='散打'?{kind:'bracket',bracket:knockout(g.athletes)}:{kind:'order',order:perfOrder(g.athletes)};
+        DB.Schedules.push({id:uid('sch'),eventId:eid,itemId:g.itemId,itemName:g.itemName,itemType:g.itemType,groupKey:g.key,data:JSON.stringify(data)});
+        created.push(g.key+'（'+g.itemType+'，'+g.count+' 人）');});
+      var tm={};teamsBy(eid).filter(function(t){return t.review==='已審核';}).forEach(function(t){
+        var key=t.itemName+' / '+t.groupName;(tm[key]=tm[key]||[]).push(t);});
+      Object.keys(tm).forEach(function(key){var list=spread(tm[key].map(function(t){return {id:t.id,name:t.teamName,unit:t.unit,members:t.membersArr};}));
+        var data={kind:'teamOrder',order:list.map(function(t,i){return {seq:i+1,teamName:t.name,unit:t.unit,members:t.members};})};
+        var first=tm[key][0];DB.Schedules.push({id:uid('sch'),eventId:eid,itemId:first.itemId,itemName:first.itemName,itemType:'團體',groupKey:key,data:JSON.stringify(data)});
+        created.push(key+'（團體，'+tm[key].length+' 隊）');});
+      return {ok:true,msg:'已產生 '+created.length+' 組賽程',detail:created};},
+    getSchedules:function(eid){return getSchedules(eid);},
+    setMatchWinner:function(sid,ri,mi,side){var s=DB.Schedules.filter(function(v){return v.id===sid;})[0];if(!s)return {ok:false,msg:'找不到賽程'};
+      var d=JSON.parse(s.data);if(!d.bracket)return {ok:false,msg:'非對戰表'};var m=d.bracket.rounds[ri][mi];
+      var w=side==='a'?m.a:m.b;if(!w||w.bye)return {ok:false,msg:'無效勝方'};m.winner={id:w.id,name:w.name,unit:w.unit};
+      propagate(d.bracket.rounds);s.data=JSON.stringify(d);return {ok:true};},
+    getResults:function(eid){return clone(DB.Results.filter(function(r){return !eid||r.eventId===eid;}));},
+    saveResult:function(r){if(r.id){var x=DB.Results.filter(function(v){return v.id===r.id;})[0];if(x)Object.assign(x,r);return {ok:true,id:r.id};}
+      r=clone(r);r.id=uid('res');DB.Results.push(r);return {ok:true,id:r.id};},
+    deleteResult:function(id){DB.Results=DB.Results.filter(function(v){return v.id!==id;});return {ok:true};},
+    generateAwardList:function(eid){return clone(DB.Results.filter(function(r){return r.eventId===eid&&Number(r.rank)>0;})
+      .sort(function(a,b){return a.groupKey===b.groupKey?Number(a.rank)-Number(b.rank):(a.groupKey<b.groupKey?-1:1);}));},
+    generateProgramBook:function(eid){var ev=DB.Events.filter(function(e){return e.id===eid;})[0];
+      return {event:ev,sections:getSchedules(eid).map(function(s){return {groupKey:s.groupKey,itemType:s.itemType,data:s.dataObj};})};},
+    getExportRows:function(eid,which){if(which==='registrations'){var h=['單位','教練','電話','Email','姓名','性別','生日','年齡','學校','年級','項目','類型','組別','體重','量級','審核','繳費'];
+        return [h].concat(regsBy({eventId:eid}).map(function(r){return [r.unit,r.coach,r.phone,r.email,r.athleteName,r.gender,r.birthday,r.age,r.school,r.grade,r.itemName,r.itemType,r.groupName,r.weight,r.weightClass,r.review,r.fee];}));}
+      if(which==='teams'){var h2=['單位','教練','電話','隊名','項目','組別','隊員','審核','繳費'];
+        return [h2].concat(teamsBy(eid).map(function(t){return [t.unit,t.coach,t.phone,t.teamName,t.itemName,t.groupName,(t.membersArr||[]).join('、'),t.review,t.fee];}));}
+      if(which==='results'){var h3=['分組','名次','姓名/隊名','單位','成績','備註'];
+        return [h3].concat(DB.Results.filter(function(r){return r.eventId===eid;}).map(function(r){return [r.groupKey,r.rank,r.name,r.unit,r.score,r.note];}));}
+      return [['無資料']];},
+    getDashboard:function(eid){var regs=regsBy({eventId:eid}),teams=teamsBy(eid),items=DB.Items.filter(function(i){return i.eventId===eid;});
+      var bt={套路:0,散打:0,團體:0};regs.forEach(function(r){if(bt[r.itemType]!==undefined)bt[r.itemType]++;});teams.forEach(function(){bt['團體']++;});
+      var u={};regs.forEach(function(r){u[r.unit]=(u[r.unit]||0)+1;});teams.forEach(function(t){u[t.unit]=(u[t.unit]||0)+1;});
+      return {totalAthletes:regs.length,totalTeams:teams.length,totalUnits:Object.keys(u).length,totalItems:items.length,
+        pending:regs.filter(function(r){return r.review==='待審核';}).length+teams.filter(function(t){return t.review==='待審核';}).length,
+        unpaid:regs.filter(function(r){return r.fee==='未繳費';}).length,byType:bt,
+        unitRank:Object.keys(u).map(function(k){return {unit:k,count:u[k]};}).sort(function(a,b){return b.count-a.count;}).slice(0,10)};},
+    publicSearch:function(eid,kw){kw=(kw||'').trim();var regs=regsBy({eventId:eid}),teams=teamsBy(eid),schedules=getSchedules(eid),results=DB.Results.filter(function(r){return r.eventId===eid;});
+      function find(name){var f=[];schedules.forEach(function(s){var d=s.dataObj;
+        if(d.kind==='order')d.order.forEach(function(o){if(o.name===name)f.push({groupKey:s.groupKey,type:'套路出場序',seq:o.seq});});
+        else if(d.kind==='bracket')d.bracket.rounds[0].forEach(function(m,i){
+          if(m.a&&m.a.name===name)f.push({groupKey:s.groupKey,type:'散打對戰',pos:'第'+(i+1)+'場 紅方'});
+          if(m.b&&m.b.name===name)f.push({groupKey:s.groupKey,type:'散打對戰',pos:'第'+(i+1)+'場 黑方'});});
+        else if(d.kind==='teamOrder')d.order.forEach(function(o){if(o.teamName===name)f.push({groupKey:s.groupKey,type:'團體出場序',seq:o.seq});});});return f;}
+      return {ok:true,
+        athletes:regs.filter(function(r){return !kw||r.athleteName.indexOf(kw)>-1||r.unit.indexOf(kw)>-1;}).map(function(r){
+          return {name:r.athleteName,unit:r.unit,itemName:r.itemName,groupName:r.groupName,gender:r.gender,weightClass:r.weightClass,
+            review:r.review,fee:r.fee,schedule:find(r.athleteName),
+            result:results.filter(function(x){return x.name===r.athleteName;}).map(function(x){return {rank:x.rank,groupKey:x.groupKey,score:x.score};})};}),
+        teams:teams.filter(function(t){return !kw||t.teamName.indexOf(kw)>-1||t.unit.indexOf(kw)>-1||JSON.stringify(t.membersArr).indexOf(kw)>-1;}).map(function(t){
+          return {teamName:t.teamName,unit:t.unit,itemName:t.itemName,groupName:t.groupName,members:t.membersArr,review:t.review,fee:t.fee,schedule:find(t.teamName)};})};},
+    getSetting:function(k){return DB.Settings[k]||'';},
+    setSetting:function(k,v){DB.Settings[k]=v;return {ok:true};},
+    buildRegLineText:function(eid,unit){return regLineText(eid,unit);},
+    buildScheduleLineText:function(eid){return schedLineText(eid);},
+    pushScheduleToLine:function(){return {ok:false,msg:'本機預覽版不支援真實推播，請用「複製 LINE 文字」'};},
+    pushLineMessage:function(){return {ok:false,msg:'本機預覽版不支援真實推播'};}
+  };
+
+  // ---- 模擬 google.script.run（每次 withSuccessHandler 產生新 ctx，支援 Promise.all 並行）----
+  function makeCtx(s,f){var ctx={_s:s||null,_f:f||null};
+    ctx.withSuccessHandler=function(fn){ctx._s=fn;return ctx;};
+    ctx.withFailureHandler=function(fn){ctx._f=fn;return ctx;};
+    Object.keys(API).forEach(function(name){ctx[name]=function(){var args=arguments;
+      setTimeout(function(){try{var r=API[name].apply(null,args);ctx._s&&ctx._s(r);}
+        catch(e){console.error(name,e);ctx._f?ctx._f(e):0;}},20);return ctx;};});
+    return ctx;}
+  window.google={script:{run:{withSuccessHandler:function(f){return makeCtx(f);},
+    withFailureHandler:function(f){return makeCtx(null,f);}}}};
+})();
+
+</script>
+<!-- ================= JavaScript ================= -->
+<script>
+/* ---------- 全域狀態 ---------- */
+var STATE = { role:null, eventId:null, events:[], items:[], groups:[], weights:[] };
+
+/* ---------- GAS 呼叫包裝（Promise） ---------- */
+function gas(fn, args){
+  return new Promise(function(res,rej){
+    google.script.run.withSuccessHandler(res).withFailureHandler(function(e){toast('⚠ '+e.message);rej(e);})
+      [fn].apply(google.script.run, args||[]);
+  });
+}
+function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.remove('hidden');
+  clearTimeout(t._t);t._t=setTimeout(function(){t.classList.add('hidden');},2600);}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function $(id){return document.getElementById(id);}
+
+/* ---------- 登入 ---------- */
+function chooseRole(role){
+  STATE.role=role;
+  if(role==='admin'){$('adminPw').classList.remove('hidden');$('pwInput').focus();}
+  else doLogin(role);
+}
+function doLogin(role){
+  var pw = role==='admin' ? $('pwInput').value : '';
+  gas('login',[role,pw]).then(function(r){
+    if(!r.ok){toast('❌ '+r.msg);return;}
+    STATE.role=role;
+    $('loginScreen').classList.add('hidden');
+    $('app').classList.remove('hidden');
+    $('roleChip').textContent = role==='admin'?'管理者':(role==='coach'?'教練/單位':'查詢');
+    boot();
+  });
+}
+function logout(){location.reload();}
+
+/* ---------- 初始載入 ---------- */
+function boot(){
+  buildTabs();
+  Promise.all([gas('getEvents'),gas('getGroups'),gas('getWeightClasses')]).then(function(a){
+    STATE.events=a[0]; STATE.groups=a[1]; STATE.weights=a[2];
+    var sel=$('eventSelect');
+    sel.innerHTML = STATE.events.map(function(e){return '<option value="'+e.id+'">'+esc(e.name)+'</option>';}).join('');
+    if(STATE.events.length){STATE.eventId=STATE.events[0].id;sel.value=STATE.eventId;}
+    return gas('getItems',[STATE.eventId]);
+  }).then(function(items){STATE.items=items||[];switchTab(TABS[0].id);});
+}
+function onEventChange(){
+  STATE.eventId=$('eventSelect').value;
+  gas('getItems',[STATE.eventId]).then(function(items){STATE.items=items||[];switchTab(currentTab);});
+}
+
+/* ---------- 分頁定義（依角色） ---------- */
+var TABS=[];
+function buildTabs(){
+  if(STATE.role==='admin') TABS=[
+    {id:'dash',name:'🏟️ 戰情室'},{id:'events',name:'🗓️ 賽事管理'},
+    {id:'config',name:'⚙️ 項目/組別/量級'},{id:'regs',name:'📑 報名名單'},
+    {id:'schedule',name:'🏆 自動分組/賽程'},{id:'results',name:'🥇 成績/獎狀'},
+    {id:'export',name:'📤 匯出'}
+  ];
+  else if(STATE.role==='coach') TABS=[{id:'apply',name:'📝 我要報名'},{id:'mylist',name:'📋 本單位名單'}];
+  else TABS=[{id:'search',name:'🔍 查詢'}];
+  $('tabs').innerHTML=TABS.map(function(t){return '<button data-id="'+t.id+'" onclick="switchTab(\''+t.id+'\')">'+t.name+'</button>';}).join('');
+}
+var currentTab=null;
+function switchTab(id){
+  currentTab=id;
+  Array.prototype.forEach.call($('tabs').children,function(b){b.classList.toggle('active',b.dataset.id===id);});
+  var v=$('view');v.innerHTML='<div class="loading">載入中…</div>';
+  ({dash:renderDash,events:renderEvents,config:renderConfig,regs:renderRegs,schedule:renderSchedule,
+    results:renderResults,export:renderExport,apply:renderApply,mylist:renderMyList,search:renderSearch}[id])();
+}
+
+/* ===================== 管理者：戰情室 ===================== */
+function renderDash(){
+  gas('getDashboard',[STATE.eventId]).then(function(d){
+    var ev=STATE.events.filter(function(e){return e.id===STATE.eventId;})[0]||{};
+    $('view').innerHTML=
+    '<div class="card"><h2><span class="bar"></span>武術賽事戰情室</h2>'+
+      '<div class="sub">'+esc(ev.name)+' ｜ '+esc(ev.date)+' ｜ '+esc(ev.location)+' ｜ 狀態：'+esc(ev.status)+'</div>'+
+      '<div class="stats">'+
+        statCard(d.totalAthletes,'個人報名數')+statCard(d.totalTeams,'團體隊數')+
+        statCard(d.totalUnits,'參賽單位')+statCard(d.totalItems,'比賽項目')+
+        statCard(d.pending,'待審核')+statCard(d.unpaid,'未繳費')+
+        statCard(d.byType['套路'],'套路人次')+statCard(d.byType['散打'],'散打人次')+
+      '</div></div>'+
+    '<div class="card"><h2><span class="bar"></span>單位報名排行</h2>'+
+      '<div class="tablewrap"><table><thead><tr><th>名次</th><th>單位</th><th>報名數</th></tr></thead><tbody>'+
+      d.unitRank.map(function(u,i){return '<tr><td>'+(i+1)+'</td><td>'+esc(u.unit)+'</td><td>'+u.count+'</td></tr>';}).join('')+
+      '</tbody></table></div></div>'+
+    '<div class="card"><h2><span class="bar"></span>快速操作</h2><div class="btnrow">'+
+      '<button class="btn gold" onclick="switchTab(\'schedule\')">⚡ 一鍵產生賽程</button>'+
+      '<button class="btn" onclick="switchTab(\'regs\')">📑 審核報名</button>'+
+      '<button class="btn green" onclick="switchTab(\'export\')">📤 匯出 Excel</button>'+
+    '</div></div>';
+  });
+}
+function statCard(n,l){return '<div class="stat"><div class="n">'+(n||0)+'</div><div class="l">'+l+'</div></div>';}
+
+/* ===================== 管理者：賽事管理 ===================== */
+function renderEvents(){
+  gas('getEvents').then(function(list){
+    STATE.events=list;
+    $('view').innerHTML=
+    '<div class="card"><h2><span class="bar"></span>新增 / 編輯賽事</h2>'+
+    '<div class="grid g2">'+
+      field('比賽名稱','ev_name')+field('日期','ev_date','date')+
+      field('地點','ev_location')+field('主辦單位','ev_host')+
+      field('報名開始日','ev_regStart','date')+field('報名截止日','ev_regEnd','date')+
+      '<div><label class="f">狀態</label><select id="ev_status" class="inp">'+
+        ['報名中','報名截止','賽事進行中','已結束'].map(function(s){return '<option>'+s+'</option>';}).join('')+'</select></div>'+
+    '</div>'+
+    '<input type="hidden" id="ev_id">'+
+    '<div class="btnrow"><button class="btn gold" onclick="saveEvent()">💾 儲存賽事</button>'+
+    '<button class="btn ghost" onclick="renderEvents()">清空</button></div></div>'+
+    '<div class="card"><h2><span class="bar"></span>賽事列表</h2><div class="tablewrap"><table>'+
+    '<thead><tr><th>名稱</th><th>日期</th><th>地點</th><th>狀態</th><th>操作</th></tr></thead><tbody>'+
+    list.map(function(e){return '<tr><td>'+esc(e.name)+'</td><td>'+esc(e.date)+'</td><td>'+esc(e.location)+
+      '</td><td><span class="pill '+(e.status==='報名中'?'ok':'wait')+'">'+esc(e.status)+'</span></td>'+
+      '<td><button class="btn sm ghost" onclick=\'editEvent('+JSON.stringify(e)+')\'>編輯</button> '+
+      '<button class="btn sm red" onclick="delEvent(\''+e.id+'\')">刪除</button></td></tr>';}).join('')+
+    '</tbody></table></div></div>';
+  });
+}
+function editEvent(e){['name','date','location','host','regStart','regEnd','status'].forEach(function(k){$('ev_'+k).value=e[k]||'';});$('ev_id').value=e.id;window.scrollTo(0,0);}
+function saveEvent(){
+  var e={id:$('ev_id').value,name:$('ev_name').value,date:$('ev_date').value,location:$('ev_location').value,
+    host:$('ev_host').value,regStart:$('ev_regStart').value,regEnd:$('ev_regEnd').value,status:$('ev_status').value};
+  if(!e.name){toast('請填比賽名稱');return;}
+  gas(e.id?'updateEvent':'createEvent',[e]).then(function(){toast('✅ 已儲存');boot();renderEvents();});
+}
+function delEvent(id){if(!confirm('確定刪除此賽事？'))return;gas('deleteEvent',[id]).then(function(){toast('已刪除');renderEvents();boot();});}
+
+/* ===================== 管理者：項目/組別/量級 ===================== */
+function renderConfig(){
+  Promise.all([gas('getItems',[STATE.eventId]),gas('getGroups'),gas('getWeightClasses')]).then(function(a){
+    STATE.items=a[0];STATE.groups=a[1];STATE.weights=a[2];
+    $('view').innerHTML=
+    /* 項目 */
+    '<div class="card"><h2><span class="bar"></span>比賽項目（套路 / 散打 / 團體）</h2>'+
+      '<div class="sub">散打會自動需要量級；套路與團體不需量級。</div>'+
+      '<div class="grid g3">'+field('項目名稱','it_name')+
+        '<div><label class="f">類型</label><select id="it_type" class="inp"><option>套路</option><option>散打</option><option>團體</option></select></div>'+
+        '<div style="display:flex;align-items:flex-end"><button class="btn gold" style="width:100%" onclick="addItem()">＋ 新增項目</button></div>'+
+      '</div>'+
+      '<div style="margin-top:12px">'+a[0].map(function(it){return '<span class="tag">'+esc(it.name)+
+        ' <b style="color:var(--gold)">['+esc(it.type)+']</b> <button class="rm" style="font-size:14px" onclick="delItem(\''+it.id+'\')">×</button></span>';}).join('')+'</div>'+
+    '</div>'+
+    /* 組別 */
+    '<div class="card"><h2><span class="bar"></span>組別</h2>'+
+      '<div class="grid g3">'+field('組別名稱','gp_name')+field('備註(可空)','gp_note')+
+        '<div style="display:flex;align-items:flex-end"><button class="btn gold" style="width:100%" onclick="addGroup()">＋ 新增組別</button></div></div>'+
+      '<div style="margin-top:12px">'+a[1].map(function(g){return '<span class="tag">'+esc(g.name)+
+        ' <button class="rm" style="font-size:14px" onclick="delGroup(\''+g.id+'\')">×</button></span>';}).join('')+'</div>'+
+    '</div>'+
+    /* 量級 */
+    '<div class="card"><h2><span class="bar"></span>散打量級</h2>'+
+      '<div class="grid g4">'+field('量級名稱','wt_name')+
+        '<div><label class="f">性別</label><select id="wt_gender" class="inp"><option>男子</option><option>女子</option></select></div>'+
+        field('下限kg','wt_min','number')+field('上限kg','wt_max','number')+
+      '</div><div class="btnrow"><button class="btn gold" onclick="addWeight()">＋ 新增量級</button></div>'+
+      '<div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>量級</th><th>性別</th><th>範圍</th><th></th></tr></thead><tbody>'+
+      a[2].map(function(w){return '<tr><td>'+esc(w.name)+'</td><td>'+esc(w.gender)+'</td><td>'+w.minW+' ~ '+w.maxW+' kg</td>'+
+        '<td><button class="btn sm red" onclick="delWeight(\''+w.id+'\')">刪除</button></td></tr>';}).join('')+'</tbody></table></div>'+
+    '</div>'+
+    /* LINE 設定 */
+    '<div class="card"><h2><span class="bar"></span>LINE 推播設定（選填）</h2>'+
+      '<div class="sub">用 LINE Messaging API 一鍵推播賽程。免設定也可用「複製 LINE 文字」貼到群組。</div>'+
+      '<div class="grid g2">'+
+        '<div><label class="f">Channel Access Token</label><input id="ln_token" class="inp" placeholder="貼上 LINE 權杖"></div>'+
+        '<div><label class="f">推播對象 ID（userId / groupId）</label><input id="ln_to" class="inp" placeholder="Uxxxx 或 Cxxxx"></div>'+
+      '</div><div class="btnrow"><button class="btn gold" onclick="saveLine()">💾 儲存 LINE 設定</button></div>'+
+    '</div>';
+    gas('getSetting',['lineToken']).then(function(v){if($('ln_token'))$('ln_token').value=v||'';});
+    gas('getSetting',['lineTo']).then(function(v){if($('ln_to'))$('ln_to').value=v||'';});
+  });
+}
+function saveLine(){
+  Promise.all([gas('setSetting',['lineToken',$('ln_token').value.trim()]),
+               gas('setSetting',['lineTo',$('ln_to').value.trim()])]).then(function(){toast('✅ 已儲存 LINE 設定');});
+}
+function addItem(){var n=$('it_name').value.trim();if(!n){toast('請填項目名稱');return;}
+  gas('createItem',[{eventId:STATE.eventId,name:n,type:$('it_type').value}]).then(function(){toast('已新增');renderConfig();});}
+function delItem(id){gas('deleteItem',[id]).then(function(){renderConfig();});}
+function addGroup(){var n=$('gp_name').value.trim();if(!n){toast('請填組別');return;}
+  gas('createGroup',[{name:n,note:$('gp_note').value}]).then(function(){toast('已新增');renderConfig();});}
+function delGroup(id){gas('deleteGroup',[id]).then(function(){renderConfig();});}
+function addWeight(){var n=$('wt_name').value.trim();if(!n){toast('請填量級名稱');return;}
+  gas('createWeightClass',[{name:n,gender:$('wt_gender').value,minW:Number($('wt_min').value||0),maxW:Number($('wt_max').value||999)}]).then(function(){toast('已新增');renderConfig();});}
+function delWeight(id){gas('deleteWeightClass',[id]).then(function(){renderConfig();});}
+
+/* ===================== 管理者：報名名單 ===================== */
+function renderRegs(){
+  $('view').innerHTML=
+  '<div class="card"><h2><span class="bar"></span>報名名單與審核</h2>'+
+    '<div class="grid g4" id="regFilters">'+
+      filterSel('f_unit','單位',[])+filterSel('f_item','項目',STATE.items.map(function(i){return i.name;}))+
+      filterSel('f_group','組別',STATE.groups.map(function(g){return g.name;}))+
+      filterSel('f_gender','性別',['男子','女子','混合'])+
+      filterSel('f_fee','繳費',['已繳費','未繳費'])+filterSel('f_review','審核',['待審核','已審核','退件'])+
+    '</div>'+
+    '<div class="btnrow"><button class="btn gold" onclick="loadRegs()">🔍 套用篩選</button>'+
+    '<button class="btn ghost" onclick="renderRegs();loadRegs()">重設</button></div>'+
+    '<div id="regTable" style="margin-top:14px"></div></div>'+
+  '<div class="card"><h2><span class="bar"></span>團體報名</h2><div id="teamTable"></div></div>';
+  loadRegs();
+}
+function filterSel(id,label,opts){
+  return '<div><label class="f">'+label+'</label><select id="'+id+'" class="inp"><option value="">全部</option>'+
+    opts.map(function(o){return '<option>'+esc(o)+'</option>';}).join('')+'</select></div>';
+}
+function loadRegs(){
+  var f={eventId:STATE.eventId,unit:$('f_unit')?$('f_unit').value:'',itemId:'',
+    groupName:$('f_group')?$('f_group').value:'',gender:$('f_gender')?$('f_gender').value:'',
+    fee:$('f_fee')?$('f_fee').value:'',review:$('f_review')?$('f_review').value:''};
+  var itName=$('f_item')?$('f_item').value:'';
+  if(itName){var it=STATE.items.filter(function(i){return i.name===itName;})[0];if(it)f.itemId=it.id;}
+  gas('getRegistrations',[f]).then(function(list){
+    // 補單位篩選下拉
+    if($('f_unit') && $('f_unit').children.length<=1){
+      var units={};list.forEach(function(r){units[r.unit]=1;});
+      $('f_unit').innerHTML='<option value="">全部</option>'+Object.keys(units).map(function(u){return '<option>'+esc(u)+'</option>';}).join('');
+    }
+    $('regTable').innerHTML='<div class="tablewrap"><table><thead><tr>'+
+      '<th>姓名</th><th>單位</th><th>項目</th><th>類型</th><th>組別</th><th>性別</th><th>量級</th><th>審核</th><th>繳費</th><th>操作</th></tr></thead><tbody>'+
+      (list.length?list.map(function(r){return '<tr><td>'+esc(r.athleteName)+'</td><td>'+esc(r.unit)+'</td><td>'+esc(r.itemName)+
+        '</td><td>'+esc(r.itemType)+'</td><td>'+esc(r.groupName)+'</td><td>'+esc(r.gender)+'</td><td>'+esc(r.weightClass||'-')+'</td>'+
+        '<td>'+reviewPill(r.review)+'</td><td>'+feePill(r.fee)+'</td>'+
+        '<td><button class="btn sm green" onclick="setReview(\''+r.id+'\',\'已審核\')">核准</button> '+
+        '<button class="btn sm ghost" onclick="setFee(\''+r.id+'\')">收費</button> '+
+        '<button class="btn sm red" onclick="delReg(\''+r.id+'\')">刪</button></td></tr>';}).join('')
+        :'<tr><td colspan="10" style="text-align:center;color:var(--muted)">無資料</td></tr>')+
+      '</tbody></table></div>';
+  });
+  gas('getTeams',[STATE.eventId]).then(function(teams){
+    $('teamTable').innerHTML='<div class="tablewrap"><table><thead><tr><th>隊名</th><th>單位</th><th>項目</th><th>組別</th><th>隊員</th><th>審核</th><th>操作</th></tr></thead><tbody>'+
+      (teams.length?teams.map(function(t){return '<tr><td>'+esc(t.teamName)+'</td><td>'+esc(t.unit)+'</td><td>'+esc(t.itemName)+
+        '</td><td>'+esc(t.groupName)+'</td><td>'+esc((t.membersArr||[]).join('、'))+'</td><td>'+reviewPill(t.review)+'</td>'+
+        '<td><button class="btn sm green" onclick="setTeamReview(\''+t.id+'\')">核准</button> '+
+        '<button class="btn sm red" onclick="delTeam(\''+t.id+'\')">刪</button></td></tr>';}).join('')
+        :'<tr><td colspan="7" style="text-align:center;color:var(--muted)">無團體報名</td></tr>')+'</tbody></table></div>';
+  });
+}
+function reviewPill(s){return '<span class="pill '+(s==='已審核'?'ok':(s==='退件'?'no':'wait'))+'">'+esc(s)+'</span>';}
+function feePill(s){return '<span class="pill '+(s==='已繳費'?'ok':'no')+'">'+esc(s)+'</span>';}
+function setReview(id,v){gas('reviewRegistration',[id,v,undefined]).then(function(){toast('已核准');loadRegs();});}
+function setFee(id){gas('reviewRegistration',[id,undefined,'已繳費']).then(function(){toast('已收費');loadRegs();});}
+function delReg(id){if(!confirm('確定刪除此報名？'))return;gas('deleteRegistration',[id]).then(function(){loadRegs();});}
+function setTeamReview(id){gas('reviewTeam',[id,'已審核',undefined]).then(function(){toast('已核准');loadRegs();});}
+function delTeam(id){if(!confirm('確定刪除此隊伍？'))return;gas('deleteTeam',[id]).then(function(){loadRegs();});}
+
+/* ===================== 管理者：自動分組 / 賽程 ===================== */
+function renderSchedule(){
+  $('view').innerHTML=
+  '<div class="card"><h2><span class="bar"></span>一鍵分組與賽程</h2>'+
+    '<div class="sub">依「項目＋組別＋性別＋量級」自動分組。套路→出場序；散打→單敗淘汰(補BYE)；團體→隊伍出場序。</div>'+
+    '<div class="btnrow">'+
+      '<button class="btn ghost" onclick="doAutoGroup()">🧩 一鍵自動分組</button>'+
+      '<button class="btn gold" onclick="doGenSchedule()">⚡ 一鍵產生賽程</button>'+
+      '<button class="btn green" onclick="copyScheduleLine()">💬 複製賽程 LINE 文字</button>'+
+      '<button class="btn" onclick="pushSchedule()">📲 推播到 LINE</button>'+
+      '<button class="btn ghost" onclick="printProgramBook()">🖨️ 列印/存 PDF 秩序冊</button>'+
+    '</div><div id="groupResult" style="margin-top:14px"></div></div>'+
+  '<div id="scheduleList"></div>';
+  loadSchedules();
+}
+function doAutoGroup(){
+  gas('autoGroup',[STATE.eventId]).then(function(r){
+    $('groupResult').innerHTML='<div class="tablewrap"><table><thead><tr><th>分組(項目/組別/性別/量級)</th><th>類型</th><th>人數</th></tr></thead><tbody>'+
+      r.groups.map(function(g){return '<tr><td>'+esc(g.key)+'</td><td>'+esc(g.itemType)+'</td><td>'+g.count+'</td></tr>';}).join('')+
+      '</tbody></table></div><div class="sub" style="margin-top:8px">共 '+r.groups.length+' 組、'+r.total+' 位已審核選手。</div>';
+  });
+}
+function doGenSchedule(){
+  if(!confirm('將重新產生本賽事所有賽程，確定？'))return;
+  $('scheduleList').innerHTML='<div class="loading">產生中…</div>';
+  gas('generateSchedule',[STATE.eventId]).then(function(r){toast('✅ '+r.msg);loadSchedules();});
+}
+function loadSchedules(){
+  gas('getSchedules',[STATE.eventId]).then(function(list){
+    if(!list.length){$('scheduleList').innerHTML='<div class="card"><div class="sub">尚未產生賽程。</div></div>';return;}
+    $('scheduleList').innerHTML=list.map(function(s){return renderOneSchedule(s);}).join('');
+  });
+}
+function renderOneSchedule(s){
+  var d=s.dataObj,html='';
+  if(d.kind==='order'){
+    html='<div class="tablewrap"><table><thead><tr><th>出場序</th><th>姓名</th><th>單位</th></tr></thead><tbody>'+
+      d.order.map(function(o){return '<tr><td><b style="color:var(--gold)">'+o.seq+'</b></td><td>'+esc(o.name)+'</td><td>'+esc(o.unit)+'</td></tr>';}).join('')+'</tbody></table></div>';
+  }else if(d.kind==='teamOrder'){
+    html='<div class="tablewrap"><table><thead><tr><th>出場序</th><th>隊名</th><th>單位</th><th>隊員</th></tr></thead><tbody>'+
+      d.order.map(function(o){return '<tr><td><b style="color:var(--gold)">'+o.seq+'</b></td><td>'+esc(o.teamName)+'</td><td>'+esc(o.unit)+'</td><td>'+esc((o.members||[]).join('、'))+'</td></tr>';}).join('')+'</tbody></table></div>';
+  }else if(d.kind==='bracket'){
+    html=renderBracket(s.id,d.bracket);
+  }
+  return '<div class="card"><h2><span class="bar"></span>'+esc(s.groupKey)+' <span class="pill wait">'+esc(s.itemType)+'</span></h2>'+html+'</div>';
+}
+function renderBracket(schId,b){
+  var roundNames=function(i,total){if(i===total-1)return '決賽';if(i===total-2)return '準決賽';return '第'+(i+1)+'輪';};
+  var cols=b.rounds.map(function(round,ri){
+    return '<div class="round"><h4>'+roundNames(ri,b.rounds.length)+'</h4>'+
+      round.map(function(m,mi){return matchHtml(schId,ri,mi,m);}).join('')+'</div>';
+  }).join('');
+  return '<div class="sub">共 '+b.count+' 人，補 '+b.byes+' 個 BYE（自動晉級）。可點「勝」決定晉級。</div>'+
+    '<div class="bracket">'+cols+'</div>';
+}
+function matchHtml(schId,ri,mi,m){
+  function side(p,which){
+    if(!p) return '<div class="side bye"><span class="nm">待定</span></div>';
+    if(p.bye) return '<div class="side bye"><span class="nm">BYE</span></div>';
+    var isWin=m.winner && m.winner.name===p.name;
+    var btn = (ri===0||true) && m.a && m.b && !m.a.bye && !m.b.bye ?
+      '<button onclick="winMatch(\''+schId+'\','+ri+','+mi+',\''+which+'\')">勝</button>':'';
+    return '<div class="side'+(isWin?' win':'')+'"><span class="nm">'+esc(p.name)+' <span class="u">'+esc(p.unit||'')+'</span></span>'+btn+'</div>';
+  }
+  return '<div class="match">'+side(m.a,'a')+side(m.b,'b')+'</div>';
+}
+function winMatch(schId,ri,mi,side){
+  gas('setMatchWinner',[schId,ri,mi,side]).then(function(r){if(!r.ok){toast(r.msg);return;}toast('✅ 已晉級');loadSchedules();});
+}
+
+/* ===================== 管理者：成績 / 獎狀 ===================== */
+function renderResults(){
+  Promise.all([gas('getResults',[STATE.eventId]),gas('getSchedules',[STATE.eventId])]).then(function(a){
+    var results=a[0];
+    $('view').innerHTML=
+    '<div class="card"><h2><span class="bar"></span>登錄成績 / 名次</h2>'+
+      '<div class="grid g4">'+field('分組(可貼分組名)','rs_group')+field('姓名/隊名','rs_name')+
+        field('單位','rs_unit')+field('名次(1~)','rs_rank','number')+'</div>'+
+      '<div class="grid g2">'+field('成績/分數','rs_score')+field('備註','rs_note')+'</div>'+
+      '<div class="btnrow"><button class="btn gold" onclick="addResult()">💾 儲存成績</button>'+
+      '<button class="btn green" onclick="showAward()">🏅 產生獎狀名單</button>'+
+      '<button class="btn ghost" onclick="showProgram()">📖 產生秩序冊</button></div></div>'+
+    '<div class="card"><h2><span class="bar"></span>成績表</h2><div class="tablewrap"><table>'+
+      '<thead><tr><th>分組</th><th>名次</th><th>姓名/隊名</th><th>單位</th><th>成績</th><th></th></tr></thead><tbody>'+
+      (results.length?results.map(function(r){return '<tr><td>'+esc(r.groupKey)+'</td><td>'+esc(r.rank)+'</td><td>'+esc(r.name)+
+        '</td><td>'+esc(r.unit)+'</td><td>'+esc(r.score)+'</td><td><button class="btn sm red" onclick="delResult(\''+r.id+'\')">刪</button></td></tr>';}).join('')
+        :'<tr><td colspan="6" style="text-align:center;color:var(--muted)">尚無成績</td></tr>')+'</tbody></table></div></div>'+
+    '<div id="awardBox"></div>';
+  });
+}
+function addResult(){
+  var r={eventId:STATE.eventId,groupKey:$('rs_group').value,name:$('rs_name').value,unit:$('rs_unit').value,
+    rank:$('rs_rank').value,score:$('rs_score').value,note:$('rs_note').value};
+  if(!r.name||!r.rank){toast('請填姓名與名次');return;}
+  gas('saveResult',[r]).then(function(){toast('✅ 已儲存');renderResults();});
+}
+function delResult(id){gas('deleteResult',[id]).then(function(){renderResults();});}
+function showAward(){
+  gas('generateAwardList',[STATE.eventId]).then(function(list){
+    $('awardBox').innerHTML='<div class="card"><h2><span class="bar"></span>🏅 獎狀名單</h2><div class="tablewrap"><table>'+
+      '<thead><tr><th>分組</th><th>名次</th><th>姓名/隊名</th><th>單位</th></tr></thead><tbody>'+
+      list.map(function(r){return '<tr><td>'+esc(r.groupKey)+'</td><td>第 '+esc(r.rank)+' 名</td><td>'+esc(r.name)+'</td><td>'+esc(r.unit)+'</td></tr>';}).join('')+
+      '</tbody></table></div><div class="btnrow"><button class="btn green" onclick="exportCsv(\'results\')">📤 匯出獎狀名單</button></div></div>';
+  });
+}
+function showProgram(){
+  gas('generateProgramBook',[STATE.eventId]).then(function(b){
+    var html=b.sections.map(function(sec){
+      var inner='';var d=sec.data;
+      if(d.kind==='order')inner=d.order.map(function(o){return o.seq+'. '+esc(o.name)+'('+esc(o.unit)+')';}).join('　');
+      else if(d.kind==='teamOrder')inner=d.order.map(function(o){return o.seq+'. '+esc(o.teamName);}).join('　');
+      else if(d.kind==='bracket')inner='散打對戰表 '+d.bracket.count+' 人（'+d.bracket.byes+' BYE）';
+      return '<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b>'+esc(sec.groupKey)+'</b><br><span class="sub">'+inner+'</span></div>';
+    }).join('');
+    $('awardBox').innerHTML='<div class="card"><h2><span class="bar"></span>📖 秩序冊資料</h2>'+
+      '<div class="sub">'+esc(b.event.name)+' ｜ '+esc(b.event.date)+' ｜ '+esc(b.event.location)+'</div>'+html+'</div>';
+  });
+}
+
+/* ===================== 管理者：匯出 ===================== */
+function renderExport(){
+  $('view').innerHTML='<div class="card"><h2><span class="bar"></span>匯出資料（CSV，可用 Excel 開啟）</h2>'+
+    '<div class="btnrow">'+
+      '<button class="btn gold" onclick="exportCsv(\'registrations\')">📤 匯出報名名單</button>'+
+      '<button class="btn" onclick="exportCsv(\'teams\')">📤 匯出團體名單</button>'+
+      '<button class="btn green" onclick="exportCsv(\'results\')">📤 匯出成績表</button>'+
+    '</div><div class="sub" style="margin-top:12px">下載的檔案為 UTF-8 CSV，Excel 開啟若亂碼請用「資料→自文字/CSV匯入」選 UTF-8。</div></div>';
+}
+function exportCsv(which){
+  gas('getExportRows',[STATE.eventId,which]).then(function(rows){
+    var csv='﻿'+rows.map(function(r){return r.map(function(c){return '"'+String(c==null?'':c).replace(/"/g,'""')+'"';}).join(',');}).join('\r\n');
+    var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download=which+'_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+    toast('✅ 已下載');
+  });
+}
+
+/* ===================== 教練：報名 ===================== */
+var APPLY={athletes:[],teams:[]};
+function renderApply(){
+  APPLY={athletes:[],teams:[]};
+  $('view').innerHTML=
+  '<div class="card"><h2><span class="bar"></span>單位 / 教練資料</h2><div class="grid g2">'+
+    field('單位名稱','u_unit')+field('教練姓名','u_coach')+field('聯絡電話','u_phone')+field('Email','u_email','email')+
+  '</div></div>'+
+  '<div class="card"><h2><span class="bar"></span>新增個人選手</h2>'+
+    '<div class="grid g3">'+field('姓名','a_name')+
+      '<div><label class="f">性別</label><select id="a_gender" class="inp"><option>男子</option><option>女子</option></select></div>'+
+      field('生日','a_birthday','date')+field('年齡','a_age','number')+field('學校','a_school')+field('年級','a_grade')+
+      '<div><label class="f">參賽項目</label><select id="a_item" class="inp" onchange="onItemPick()">'+
+        STATE.items.map(function(i){return '<option value="'+i.id+'" data-type="'+i.type+'">'+esc(i.name)+'（'+i.type+'）</option>';}).join('')+'</select></div>'+
+      '<div><label class="f">組別</label><select id="a_group" class="inp">'+
+        STATE.groups.map(function(g){return '<option value="'+g.id+'">'+esc(g.name)+'</option>';}).join('')+'</select></div>'+
+      '<div id="a_weightBox" class="hidden"><label class="f">體重(kg)</label><input id="a_weight" class="inp" type="number" onchange="autoWeightClass()"></div>'+
+      '<div id="a_wcBox" class="hidden"><label class="f">量級</label><select id="a_wc" class="inp"></select></div>'+
+    '</div><div class="btnrow"><button class="btn gold" onclick="addAthlete()">＋ 加入選手</button></div>'+
+    '<div id="athleteList" style="margin-top:12px"></div>'+
+  '</div>'+
+  '<div class="card"><h2><span class="bar"></span>團體項目報名</h2><div class="grid g3">'+
+    field('隊伍名稱','t_name')+
+    '<div><label class="f">團體項目</label><select id="t_item" class="inp">'+
+      STATE.items.filter(function(i){return i.type==='團體';}).map(function(i){return '<option value="'+i.id+'">'+esc(i.name)+'</option>';}).join('')+'</select></div>'+
+    '<div><label class="f">組別</label><select id="t_group" class="inp">'+
+      STATE.groups.map(function(g){return '<option value="'+g.id+'">'+esc(g.name)+'</option>';}).join('')+'</select></div>'+
+    '</div>'+
+    '<div class="grid g2"><div><label class="f">隊員（每行一位）</label><textarea id="t_members" class="inp" rows="3" placeholder="王小明&#10;李小華"></textarea></div></div>'+
+    '<div class="btnrow"><button class="btn" onclick="addTeam()">＋ 加入隊伍</button></div>'+
+    '<div id="teamListBox" style="margin-top:12px"></div>'+
+  '</div>'+
+  '<div class="card"><div class="btnrow"><button class="btn gold" style="flex:1;font-size:16px;padding:15px" onclick="submitApply()">🚀 送出報名</button></div></div>';
+  onItemPick();
+}
+function onItemPick(){
+  var sel=$('a_item');if(!sel)return;
+  var type=sel.options[sel.selectedIndex].dataset.type;
+  var need=type==='散打';
+  $('a_weightBox').classList.toggle('hidden',!need);
+  $('a_wcBox').classList.toggle('hidden',!need);
+  if(need)autoWeightClass();
+}
+function autoWeightClass(){
+  var g=$('a_gender').value,w=Number($('a_weight').value||0);
+  var opts=STATE.weights.filter(function(x){return x.gender===g;});
+  var match=opts.filter(function(x){return w>x.minW && w<=x.maxW;});
+  $('a_wc').innerHTML=opts.map(function(x){return '<option'+(match[0]&&match[0].id===x.id?' selected':'')+'>'+esc(x.name)+'</option>';}).join('');
+}
+function addAthlete(){
+  var sel=$('a_item');var type=sel.options[sel.selectedIndex].dataset.type;
+  var a={name:$('a_name').value.trim(),gender:$('a_gender').value,birthday:$('a_birthday').value,
+    age:$('a_age').value,school:$('a_school').value,grade:$('a_grade').value,
+    itemId:sel.value,itemName:sel.options[sel.selectedIndex].text.split('（')[0],itemType:type,
+    groupId:$('a_group').value,groupName:$('a_group').options[$('a_group').selectedIndex].text,
+    weight:type==='散打'?$('a_weight').value:'',weightClass:type==='散打'?$('a_wc').value:''};
+  if(!a.name){toast('請填姓名');return;}
+  APPLY.athletes.push(a);$('a_name').value='';renderAthleteList();toast('已加入 '+a.name);
+}
+function renderAthleteList(){
+  $('athleteList').innerHTML=APPLY.athletes.map(function(a,i){return '<div class="athlete-row">'+
+    '<b>'+esc(a.name)+'</b> <span class="tag">'+esc(a.itemName)+'</span><span class="tag">'+esc(a.groupName)+'</span>'+
+    '<span class="tag">'+esc(a.gender)+'</span>'+(a.weightClass?'<span class="tag">'+esc(a.weightClass)+'</span>':'')+
+    '<button class="rm" style="float:right" onclick="rmAthlete('+i+')">×</button></div>';}).join('');
+}
+function rmAthlete(i){APPLY.athletes.splice(i,1);renderAthleteList();}
+function addTeam(){
+  var members=$('t_members').value.split('\n').map(function(s){return s.trim();}).filter(Boolean);
+  var t={teamName:$('t_name').value.trim(),itemId:$('t_item').value,
+    itemName:$('t_item').options[$('t_item').selectedIndex]?$('t_item').options[$('t_item').selectedIndex].text:'',
+    groupId:$('t_group').value,groupName:$('t_group').options[$('t_group').selectedIndex].text,members:members};
+  if(!t.teamName){toast('請填隊名');return;}if(!members.length){toast('請填隊員');return;}
+  APPLY.teams.push(t);$('t_name').value='';$('t_members').value='';renderTeamList();toast('已加入 '+t.teamName);
+}
+function renderTeamList(){
+  $('teamListBox').innerHTML=APPLY.teams.map(function(t,i){return '<div class="athlete-row"><b>'+esc(t.teamName)+'</b> '+
+    '<span class="tag">'+esc(t.itemName)+'</span><span class="tag">'+esc(t.groupName)+'</span> 隊員：'+esc(t.members.join('、'))+
+    '<button class="rm" style="float:right" onclick="rmTeam('+i+')">×</button></div>';}).join('');
+}
+function rmTeam(i){APPLY.teams.splice(i,1);renderTeamList();}
+function submitApply(){
+  var unit={unitName:$('u_unit').value.trim(),coach:$('u_coach').value.trim(),phone:$('u_phone').value,email:$('u_email').value};
+  if(!unit.unitName||!unit.coach){toast('請填單位名稱與教練姓名');return;}
+  if(!APPLY.athletes.length && !APPLY.teams.length){toast('請至少新增一位選手或一隊');return;}
+  gas('submitRegistration',[{eventId:STATE.eventId,unit:unit,athletes:APPLY.athletes,teams:APPLY.teams}]).then(function(r){
+    toast('🎉 '+r.msg);APPLY={athletes:[],teams:[]};renderAthleteList();renderTeamList();
+    sessionStorage.setItem('myUnit',unit.unitName);
+    if(confirm('報名成功！要產生「LINE 報名確認文字」嗎？'))
+      gas('buildRegLineText',[STATE.eventId,unit.unitName]).then(function(t){showTextWindow('報名確認 LINE 文字',t);});
+  });
+}
+
+/* ===================== 教練：本單位名單 ===================== */
+function renderMyList(){
+  var unit=sessionStorage.getItem('myUnit')||'';
+  $('view').innerHTML='<div class="card"><h2><span class="bar"></span>查詢本單位報名名單</h2>'+
+    field('單位名稱','my_unit')+'<div class="btnrow"><button class="btn gold" onclick="loadMyList()">🔍 查詢</button></div>'+
+    '<div id="myResult" style="margin-top:14px"></div></div>';
+  $('my_unit').value=unit;if(unit)loadMyList();
+}
+function loadMyList(){
+  var unit=$('my_unit').value.trim();if(!unit){toast('請輸入單位');return;}
+  gas('getRegistrations',[{eventId:STATE.eventId,unit:unit}]).then(function(list){
+    $('myResult').innerHTML='<div class="tablewrap"><table><thead><tr><th>姓名</th><th>項目</th><th>組別</th><th>量級</th><th>審核</th><th>繳費</th></tr></thead><tbody>'+
+      (list.length?list.map(function(r){return '<tr><td>'+esc(r.athleteName)+'</td><td>'+esc(r.itemName)+'</td><td>'+esc(r.groupName)+
+        '</td><td>'+esc(r.weightClass||'-')+'</td><td>'+reviewPill(r.review)+'</td><td>'+feePill(r.fee)+'</td></tr>';}).join('')
+        :'<tr><td colspan="6" style="text-align:center;color:var(--muted)">查無資料</td></tr>')+'</tbody></table></div>';
+  });
+}
+
+/* ===================== 選手 / 家長：查詢 ===================== */
+function renderSearch(){
+  $('view').innerHTML='<div class="card"><h2><span class="bar"></span>選手 / 家長查詢</h2>'+
+    '<div class="sub">輸入「姓名」或「單位」查詢報名狀態、出場序、對戰位置與名次。</div>'+
+    field('關鍵字（姓名或單位）','q_kw')+
+    '<div class="btnrow"><button class="btn gold" onclick="doSearch()">🔍 查詢</button></div>'+
+    '<div id="searchResult" style="margin-top:14px"></div></div>';
+  $('q_kw').addEventListener('keydown',function(e){if(e.key==='Enter')doSearch();});
+}
+function doSearch(){
+  var kw=$('q_kw').value.trim();
+  gas('publicSearch',[STATE.eventId,kw]).then(function(r){
+    var html='';
+    if(r.athletes.length){
+      html+='<h3 style="margin:8px 0">個人項目</h3>'+r.athletes.map(function(a){
+        var sch=a.schedule.map(function(s){return s.type+'：'+(s.seq?('第'+s.seq+'位'):s.pos)+'（'+s.groupKey+'）';}).join('<br>')||'尚未排賽程';
+        var res=a.result.map(function(x){return '第 '+x.rank+' 名';}).join('、')||'—';
+        return '<div class="athlete-row"><b style="font-size:15px">'+esc(a.name)+'</b> '+reviewPill(a.review)+' '+feePill(a.fee)+
+          '<br><span class="sub">'+esc(a.unit)+' ｜ '+esc(a.itemName)+' ｜ '+esc(a.groupName)+(a.weightClass?' ｜ '+esc(a.weightClass):'')+'</span>'+
+          '<div style="margin-top:6px;font-size:13px">📍 '+sch+'</div><div style="font-size:13px">🥇 名次：'+esc(res)+'</div></div>';
+      }).join('');
+    }
+    if(r.teams.length){
+      html+='<h3 style="margin:8px 0">團體項目</h3>'+r.teams.map(function(t){
+        var sch=t.schedule.map(function(s){return s.type+'：第'+s.seq+'位（'+s.groupKey+'）';}).join('<br>')||'尚未排賽程';
+        return '<div class="athlete-row"><b>'+esc(t.teamName)+'</b> '+reviewPill(t.review)+
+          '<br><span class="sub">'+esc(t.unit)+' ｜ '+esc(t.itemName)+' ｜ 隊員：'+esc((t.members||[]).join('、'))+'</span>'+
+          '<div style="margin-top:6px;font-size:13px">📍 '+sch+'</div></div>';
+      }).join('');
+    }
+    $('searchResult').innerHTML=html||'<div class="sub">查無資料，請確認關鍵字。</div>';
+  });
+}
+
+/* ===================== LINE 通知 ===================== */
+// 開新視窗顯示可複製文字（GAS iframe 內 clipboard 受限，用 textarea 最穩）
+function showTextWindow(title,text){
+  var w=window.open('','_blank','width=460,height=620');
+  if(!w){toast('請允許彈出視窗');return;}
+  w.document.write('<meta charset="utf-8"><title>'+esc(title)+'</title>'+
+    '<body style="font-family:Microsoft JhengHei,sans-serif;background:#0b1220;color:#e8eef9;padding:16px">'+
+    '<h3 style="color:#e0b84d">'+esc(title)+'</h3>'+
+    '<p style="color:#8ea0bd;font-size:13px">全選下方文字 → 複製 → 貼到 LINE 群組</p>'+
+    '<textarea id="t" style="width:100%;height:440px;background:#16233c;color:#e8eef9;border:1px solid #24314f;border-radius:10px;padding:12px;font-size:14px">'+
+    esc(text)+'</textarea>'+
+    '<button onclick="var t=document.getElementById(\'t\');t.select();document.execCommand(\'copy\');this.textContent=\'✅ 已複製\'" '+
+    'style="margin-top:10px;width:100%;padding:12px;background:linear-gradient(135deg,#e0b84d,#c79a36);border:none;border-radius:10px;font-weight:700;font-size:15px">📋 一鍵複製</button>');
+  w.document.close();
+}
+function copyScheduleLine(){gas('buildScheduleLineText',[STATE.eventId]).then(function(t){showTextWindow('賽程 LINE 文字',t);});}
+function pushSchedule(){gas('pushScheduleToLine',[STATE.eventId]).then(function(r){toast((r.ok?'✅ ':'⚠ ')+r.msg);});}
+
+/* ===================== 列印 / 存 PDF 秩序冊 ===================== */
+function printProgramBook(){
+  gas('generateProgramBook',[STATE.eventId]).then(function(b){
+    var ev=b.event||{};
+    var sections=b.sections.map(function(sec){
+      var d=sec.data,inner='';
+      if(d.kind==='order'){
+        inner='<table><thead><tr><th>出場序</th><th>姓名</th><th>單位</th></tr></thead><tbody>'+
+          d.order.map(function(o){return '<tr><td>'+o.seq+'</td><td>'+esc(o.name)+'</td><td>'+esc(o.unit)+'</td></tr>';}).join('')+'</tbody></table>';
+      }else if(d.kind==='teamOrder'){
+        inner='<table><thead><tr><th>出場序</th><th>隊名</th><th>單位</th><th>隊員</th></tr></thead><tbody>'+
+          d.order.map(function(o){return '<tr><td>'+o.seq+'</td><td>'+esc(o.teamName)+'</td><td>'+esc(o.unit)+'</td><td>'+esc((o.members||[]).join('、'))+'</td></tr>';}).join('')+'</tbody></table>';
+      }else if(d.kind==='bracket'){
+        inner='<p>單敗淘汰 '+d.bracket.count+' 人（補 '+d.bracket.byes+' 個 BYE）</p><table><thead><tr><th>場次</th><th>紅方</th><th>黑方</th></tr></thead><tbody>'+
+          d.bracket.rounds[0].map(function(m,i){return '<tr><td>第'+(i+1)+'場</td><td>'+esc(m.a?m.a.name:'待定')+'</td><td>'+esc(m.b?m.b.name:'待定')+'</td></tr>';}).join('')+'</tbody></table>';
+      }
+      return '<section><h2>'+esc(sec.groupKey)+'　<small>['+esc(sec.itemType)+']</small></h2>'+inner+'</section>';
+    }).join('');
+    var html='<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8"><title>秩序冊</title><style>'+
+      'body{font-family:"Microsoft JhengHei",sans-serif;color:#111;padding:30px;max-width:900px;margin:auto}'+
+      '.cover{text-align:center;border-bottom:3px solid #b8862a;padding-bottom:18px;margin-bottom:20px}'+
+      '.cover h1{font-size:26px;margin:6px 0}.cover p{color:#555;margin:2px}'+
+      'section{margin:18px 0;page-break-inside:avoid}'+
+      'h2{font-size:16px;background:#0f172a;color:#fff;padding:8px 12px;border-radius:6px}'+
+      'table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}'+
+      'th,td{border:1px solid #ccc;padding:6px 9px;text-align:left}th{background:#f1f1f1}'+
+      '.btnbar{text-align:center;margin:16px 0}@media print{.btnbar{display:none}}'+
+      'button{padding:10px 22px;font-size:15px;background:#b8862a;color:#fff;border:none;border-radius:8px;cursor:pointer}'+
+      '</style></head><body>'+
+      '<div class="btnbar"><button onclick="window.print()">🖨️ 列印 / 存成 PDF</button></div>'+
+      '<div class="cover"><h1>'+esc(ev.name||'武術比賽')+'</h1>'+
+        '<p>秩序冊　Program Book</p><p>📅 '+esc(ev.date||'')+'　📍 '+esc(ev.location||'')+'</p>'+
+        '<p>主辦：'+esc(ev.host||'')+'</p></div>'+
+      sections+
+      '<div class="btnbar"><button onclick="window.print()">🖨️ 列印 / 存成 PDF</button></div>'+
+      '<div style="position:fixed;bottom:6px;right:8px;z-index:999;background:#e0b84d;color:#1a1304;font:600 11px sans-serif;padding:4px 10px;border-radius:8px">本機預覽版 · 資料不儲存</div>
+</body></html>';
+    var w=window.open('','_blank');
+    if(!w){toast('請允許彈出視窗');return;}
+    w.document.write(html);w.document.close();
+  });
+}
+
+/* ---------- 小元件 ---------- */
+function field(label,id,type){return '<div><label class="f">'+label+'</label><input id="'+id+'" class="inp" type="'+(type||'text')+'"></div>';}
+</script>
+<div style="position:fixed;bottom:6px;right:8px;z-index:999;background:#e0b84d;color:#1a1304;font:600 11px sans-serif;padding:4px 10px;border-radius:8px">本機預覽版 · 資料不儲存</div>
+</body>
+</html>
